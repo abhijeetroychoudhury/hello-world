@@ -6,6 +6,16 @@ pipeline{
     //   args '-v $HOME/.m2:/root/.m2'
     // }
   //}
+
+  environment {
+        NEXUS_VERSION = "nexus3"
+        NEXUS_PROTOCOL = "http"
+        NEXUS_URL = "localhost:8081"
+        NEXUS_REPOSITORY = "webapp-demo"
+        NEXUS_CREDENTIAL_ID = "nexus"
+        // MVNHOME = tool name: 'Maven_3.8.5', type: 'maven'
+        // MVNCOMMAND = "${mvnhome}/bin/mvn"
+    }
   stages{
     stage ('SCM Checkout'){
       steps{
@@ -73,25 +83,58 @@ pipeline{
         }
       }
     }
+
+    stage("Publish to Nexus Repository Manager") {
+            steps {
+                script {
+                  pom = readMavenPom file: "pom.xml";
+                  filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
+                  echo "+++ ${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
+                  artifactPath = filesByGlob[0].path;
+                  artifactExists = fileExists artifactPath;
+                  if(artifactExists) {
+                      echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
+                      nexusArtifactUploader(
+                          nexusVersion: NEXUS_VERSION,
+                          protocol: NEXUS_PROTOCOL,
+                          nexusUrl: NEXUS_URL,
+                          groupId: pom.groupId,
+                          version: pom.version,
+                          repository: NEXUS_REPOSITORY,
+                          credentialsId: NEXUS_CREDENTIAL_ID,
+                          artifacts: [
+                              [artifactId: pom.artifactId,
+                              classifier: '',
+                              file: artifactPath,
+                              type: pom.packaging],
+                              [artifactId: pom.artifactId,
+                              classifier: '',
+                              file: "pom.xml",
+                              type: "pom"]
+                          ]
+                      );
+                  } else {
+                      error "*** File: ${artifactPath}, could not be found";
+                  }
     
-    stage ('Pushing war to Nexus'){
-      steps{
-        script{
-          nexusArtifactUploader artifacts: [[
-            artifactId: 'webapp', 
-            classifier: '', 
-            file: 'target/webapp.war', 
-            type: 'war']], 
-            credentialsId: 'nexus', 
-            groupId: 'com.example.maven-project', 
-            nexusUrl: 'localhost:8081', 
-            nexusVersion: 'nexus3', 
-            protocol: 'http', 
-            repository: 'webapp-repo', 
-            version: '1.0-SNAPSHOT'
-          }
-        }
-      }
+    // stage ('Pushing war to Nexus'){
+    //   steps{
+    //     script{
+    //       nexusArtifactUploader artifacts: [[
+    //         artifactId: 'webapp', 
+    //         classifier: '', 
+    //         file: 'target/webapp.war', 
+    //         type: 'war']], 
+    //         credentialsId: 'nexus', 
+    //         groupId: 'com.example.maven-project', 
+    //         nexusUrl: 'localhost:8081', 
+    //         nexusVersion: 'nexus3', 
+    //         protocol: 'http', 
+    //         repository: 'webapp-repo', 
+    //         version: '1.0-SNAPSHOT'
+    //       }
+    //     }
+    //   }
 
     stage ('building docker image'){
       steps{
