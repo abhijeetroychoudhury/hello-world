@@ -1,0 +1,116 @@
+pipeline{
+  agent any
+  //{
+    // docker {
+    //   image 'maven'
+    //   args '-v $HOME/.m2:/root/.m2'
+    // }
+  //}
+  stages{
+    stage ('SCM Checkout'){
+      steps{
+        script{
+        git branch: 'abhijeet_roy', 
+        credentialsId: 'github-personal', 
+        url: 'https://github.com/abhijeetroychoudhury/demo-app'
+      }
+    }
+    }
+    stage('UNIT TEST'){
+            steps {
+                bat 'mvn test'
+            }
+        }
+
+	stage('INTEGRATION TEST'){
+            steps {
+                bat 'mvn verify -DskipUnitTests'
+            }
+        }
+		
+        stage ('CODE ANALYSIS WITH CHECKSTYLE'){
+            steps {
+                bat 'mvn checkstyle:checkstyle'
+            }
+            post {
+                success {
+                    echo 'Generated Analysis Result'
+                }
+            }
+        }
+    stage('Quality Gate Status Check'){
+      steps{
+        script{
+			  withSonarQubeEnv('sonarQube') { 
+              def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+              def mvncommand = "${mvnhome}/bin/mvn"
+              bat "${mvncommand} sonar:sonar"
+            }
+		/*timeout(time: 1, unit: 'HOURS') {
+		def qg = waitForQualityGate()
+		if (qg.status != 'OK') {
+		   error "Pipeline aborted due to quality gate failure: ${qg.status}"
+		    }
+        }*/
+        }
+      }
+    }
+    stage ('MVN clean package'){
+      steps{
+        script{
+        def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+        def mvncommand = "${mvnhome}/bin/mvn"
+        bat "${mvncommand} clean package"
+    }
+    }
+    }
+    
+    stage('Pushing war to Nexus'){
+      steps{
+        script{
+          nexusArtifactUploader artifacts: 
+          [[
+          artifactId: 'maven-project', 
+          classifier: '', 
+          file: 'target/*.war', 
+          type: 'war'
+          ]], 
+          credentialsId: 'nexus', 
+          groupId: 'com.example.maven-project', 
+          nexusUrl: 'localhost:8081', 
+          nexusVersion: 'nexus3', 
+          protocol: 'http', 
+          repository: 'http://localhost:8081/repository/webapp-repo/', 
+          version: '1.0-SNAPSHOT'
+        
+          }
+        }
+      }
+    stage ('building docker image'){
+      steps{
+        script{
+        bat 'docker build -t abhi96dock/copied-java-code:0.0.1 .'
+    }
+      }
+    }
+    stage('Pushing Docker Image'){
+      steps{
+        script{
+        withCredentials([string(credentialsId: 'docker-pwd', variable: 'pwd')]) {
+        bat "docker login -u abhi96dock -p ${pwd}"
+        bat 'docker push abhi96dock/copied-java-code:0.0.1'
+        }
+        }
+      }
+   }
+   
+ 
+   stage('Run Container with application'){
+     steps{
+       script{
+          bat 'docker run -p 8090:8080 -d --name my-app abhi96dock/copied-java-code:0.0.1'
+       }
+     }     
+   }
+  }
+}
