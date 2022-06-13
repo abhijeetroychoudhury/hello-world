@@ -18,19 +18,25 @@ pipeline{
     }
     stage('UNIT TEST'){
             steps {
-                bat 'mvn test'
+	    	def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+        	def mvncommand = "${mvnhome}/bin/mvn"
+                bat "{mvncommand} test"
             }
         }
 
 	stage('INTEGRATION TEST'){
             steps {
-                bat 'mvn verify -DskipUnitTests'
+	    	def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+        	def mvncommand = "${mvnhome}/bin/mvn"
+                bat "{mvncommand} verify -DskipUnitTests"
             }
         }
 		
         stage ('CODE ANALYSIS WITH CHECKSTYLE'){
             steps {
-                bat 'mvn checkstyle:checkstyle'
+	    	def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+        	def mvncommand = "${mvnhome}/bin/mvn"
+                bat "{mvncommand} checkstyle:checkstyle"
             }
             post {
                 success {
