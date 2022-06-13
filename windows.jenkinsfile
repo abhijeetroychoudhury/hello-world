@@ -116,6 +116,9 @@ pipeline{
                   } else {
                       error "*** File: ${artifactPath}, could not be found";
                   }
+                }
+            }
+        }
     
     // stage ('Pushing war to Nexus'){
     //   steps{
