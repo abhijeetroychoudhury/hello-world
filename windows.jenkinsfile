@@ -10,9 +10,9 @@ pipeline{
     stage ('SCM Checkout'){
       steps{
         script{
-        git branch: 'abhijeet_roy', 
+        git branch: 'master', 
         credentialsId: 'github-personal', 
-        url: 'https://github.com/abhijeetroychoudhury/demo-app'
+        url: 'https://github.com/abhijeetroychoudhury/hello-world.git'
       }
     }
     }
