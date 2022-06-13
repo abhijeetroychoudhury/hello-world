@@ -17,70 +17,76 @@ pipeline{
     }
     }
     stage('UNIT TEST'){
-            steps {
-	    	def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
-        	def mvncommand = "${mvnhome}/bin/mvn"
-                bat "{mvncommand} test"
-            }
+      steps {
+        script{
+	    	  def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+          def mvncommand = "${mvnhome}/bin/mvn"
+          bat "{mvncommand} test"
         }
+      }
+    }
 
-	stage('INTEGRATION TEST'){
-            steps {
-	    	def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+	  stage('INTEGRATION TEST'){
+      steps {
+        script{
+	    	  def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
         	def mvncommand = "${mvnhome}/bin/mvn"
-                bat "{mvncommand} verify -DskipUnitTests"
-            }
+          bat "{mvncommand} verify -DskipUnitTests"
         }
-		
-        stage ('CODE ANALYSIS WITH CHECKSTYLE'){
-            steps {
-	    	def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
+      }
+    }
+    
+    stage ('CODE ANALYSIS WITH CHECKSTYLE'){
+      steps {
+        script{
+	    	  def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
         	def mvncommand = "${mvnhome}/bin/mvn"
-                bat "{mvncommand} checkstyle:checkstyle"
-            }
-            post {
-                success {
-                    echo 'Generated Analysis Result'
-                }
-            }
+          bat "{mvncommand} checkstyle:checkstyle"
         }
+        post {
+          success {
+           echo 'Generated Analysis Result'
+          }
+        }
+      }
+    }
+
     stage('Quality Gate Status Check'){
       steps{
         script{
-			  withSonarQubeEnv('sonarQube') { 
+			    withSonarQubeEnv('sonarQube') { 
               def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
               def mvncommand = "${mvnhome}/bin/mvn"
               bat "${mvncommand} sonar:sonar"
             }
-		/*timeout(time: 1, unit: 'HOURS') {
-		def qg = waitForQualityGate()
-		if (qg.status != 'OK') {
-		   error "Pipeline aborted due to quality gate failure: ${qg.status}"
-		    }
-        }*/
+		        /*timeout(time: 1, unit: 'HOURS') {
+		          def qg = waitForQualityGate()
+		            if (qg.status != 'OK') {
+		            error "Pipeline aborted due to quality gate failure: ${qg.status}"
+		            }
+              }*/
+          }
         }
       }
-    }
+
     stage ('MVN clean package'){
       steps{
         script{
         def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
         def mvncommand = "${mvnhome}/bin/mvn"
         bat "${mvncommand} clean package"
-    }
-    }
+        }
+      }
     }
     
-    stage('Pushing war to Nexus'){
+    stage ('Pushing war to Nexus'){
       steps{
         script{
           nexusArtifactUploader artifacts: 
-          [[
-          artifactId: 'maven-project', 
+          [[artifactId: 'maven-project', 
           classifier: '', 
           file: 'target/*.war', 
-          type: 'war'
-          ]], 
+          type: 'war']], 
           credentialsId: 'nexus', 
           groupId: 'com.example.maven-project', 
           nexusUrl: 'localhost:8081', 
@@ -88,14 +94,14 @@ pipeline{
           protocol: 'http', 
           repository: 'http://localhost:8081/repository/webapp-repo/', 
           version: '1.0-SNAPSHOT'
-        
           }
         }
       }
+
     stage ('building docker image'){
       steps{
         script{
-        bat 'docker build -t abhi96dock/copied-java-code:0.0.1 .'
+        bat 'docker build -t abhi96dock/hello-code:1.0 .'
     }
       }
     }
@@ -104,7 +110,7 @@ pipeline{
         script{
         withCredentials([string(credentialsId: 'docker-pwd', variable: 'pwd')]) {
         bat "docker login -u abhi96dock -p ${pwd}"
-        bat 'docker push abhi96dock/copied-java-code:0.0.1'
+        bat 'docker push abhi96dock/hello-code:1.0'
         }
         }
       }
@@ -114,7 +120,7 @@ pipeline{
    stage('Run Container with application'){
      steps{
        script{
-          bat 'docker run -p 8090:8080 -d --name my-app abhi96dock/copied-java-code:0.0.1'
+          bat 'docker run -p 8090:8080 -d --name hello-code-demo abhi96dock/hello-code:1.0'
        }
      }     
    }
