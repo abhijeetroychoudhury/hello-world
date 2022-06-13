@@ -21,7 +21,7 @@ pipeline{
         script{
 	    	  def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
           def mvncommand = "${mvnhome}/bin/mvn"
-          bat "{mvncommand} test"
+          bat "${mvncommand} test"
         }
       }
     }
@@ -31,7 +31,7 @@ pipeline{
         script{
 	    	  def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
         	def mvncommand = "${mvnhome}/bin/mvn"
-          bat "{mvncommand} verify -DskipUnitTests"
+          bat "${mvncommand} verify -DskipUnitTests"
         }
       }
     }
@@ -41,7 +41,7 @@ pipeline{
         script{
 	    	  def mvnhome = tool name: 'Maven_3.8.5', type: 'maven'
         	def mvncommand = "${mvnhome}/bin/mvn"
-          bat "{mvncommand} checkstyle:checkstyle"
+          bat "${mvncommand} checkstyle:checkstyle"
         }
         post {
           success {
